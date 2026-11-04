@@ -5,18 +5,24 @@ import { createPrisma } from './db.js';
 import type { Deps } from './deps.js';
 import { systemClock } from './lib/clock.js';
 import { createLogger } from './logger.js';
+import { MercadoPagoProvider } from './payments/mercadopago.provider.js';
+import { expireOverdueOrders } from './services/stock.service.js';
 import { LocalStorage } from './storage/local.storage.js';
 
 const env = loadEnv();
 const logger = createLogger(env);
 mkdirSync(env.UPLOAD_DIR, { recursive: true });
 
+if (!env.MP_ACCESS_TOKEN) {
+  logger.warn('MP_ACCESS_TOKEN is not set: checkout will answer 503 until it is configured');
+}
+
 const deps: Deps = {
   env,
   logger,
   prisma: createPrisma(env.DATABASE_URL),
   clock: systemClock,
-  payments: null,
+  payments: env.MP_ACCESS_TOKEN ? new MercadoPagoProvider(env.MP_ACCESS_TOKEN) : null,
   storage: new LocalStorage(env.UPLOAD_DIR, env.PUBLIC_API_URL),
 };
 
@@ -25,8 +31,21 @@ const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT }, `API listening on http://localhost:${env.PORT}`);
 });
 
+// Expire overdue reservations every minute (safe with several instances).
+let job: NodeJS.Timeout | undefined;
+if (env.EXPIRATION_JOB_ENABLED) {
+  job = setInterval(() => {
+    expireOverdueOrders(deps)
+      .then((count) => {
+        if (count > 0) logger.info({ count }, 'expired overdue orders');
+      })
+      .catch((err: unknown) => logger.error({ err }, 'expiration job failed'));
+  }, 60_000);
+}
+
 function shutdown(signal: string) {
   logger.info({ signal }, 'shutting down');
+  if (job) clearInterval(job);
   server.close(() => {
     void deps.prisma.$disconnect().finally(() => process.exit(0));
   });

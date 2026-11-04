@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -8,8 +9,10 @@ import { createApp, type AppOptions } from '../src/app.js';
 import { assertTestDatabase, loadEnv } from '../src/config/env.js';
 import { createPrisma } from '../src/db.js';
 import type { Deps } from '../src/deps.js';
+import type { OrderStatus, Fulfillment } from '../src/generated/prisma/client.js';
 import { FixedClock } from '../src/lib/clock.js';
 import { createLogger } from '../src/logger.js';
+import { FakePaymentProvider } from '../src/payments/fake.provider.js';
 import { LocalStorage } from '../src/storage/local.storage.js';
 
 export const ORIGIN = 'http://localhost:3000';
@@ -22,6 +25,7 @@ export interface TestContext {
   deps: Deps;
   prisma: Deps['prisma'];
   clock: FixedClock;
+  payments: FakePaymentProvider;
   uploadDir: string;
   close: () => Promise<void>;
 }
@@ -46,11 +50,12 @@ export async function createTestContext(
   };
   const prisma = createPrisma(url, 25);
   const clock = new FixedClock(options.start ?? new Date('2026-11-04T12:00:00.000Z'));
+  const payments = new FakePaymentProvider();
   const deps: Deps = {
     env,
     prisma,
     clock,
-    payments: null,
+    payments,
     storage: new LocalStorage(uploadDir, env.PUBLIC_API_URL),
     logger: createLogger(env),
   };
@@ -67,6 +72,7 @@ export async function createTestContext(
     deps,
     prisma,
     clock,
+    payments,
     uploadDir,
     close: async () => {
       await prisma.$disconnect();
@@ -190,6 +196,77 @@ export async function setStoreSettings(ctx: TestContext, shippingCostCents = 150
     create: { id: 1, storeName: 'Tienda Test', shippingCostCents, pickupAddress: 'Calle 1' },
     update: { shippingCostCents },
   });
+}
+
+/** Inserts an order directly in a given status (for state-machine and payment tests). */
+export async function insertOrder(
+  ctx: TestContext,
+  data: {
+    userId: string;
+    productId: string;
+    quantity?: number;
+    unitPriceCents?: number;
+    status?: OrderStatus;
+    fulfillment?: Fulfillment;
+    expiresAt?: Date;
+    paidAt?: Date | null;
+  },
+) {
+  const quantity = data.quantity ?? 1;
+  const unit = data.unitPriceCents ?? 100_00;
+  return ctx.prisma.order.create({
+    data: {
+      userId: data.userId,
+      status: data.status ?? 'PENDING_PAYMENT',
+      fulfillment: data.fulfillment ?? 'PICKUP',
+      subtotalCents: unit * quantity,
+      shippingCents: 0,
+      totalCents: unit * quantity,
+      expiresAt: data.expiresAt ?? new Date(ctx.clock.now().getTime() + 30 * 60_000),
+      paidAt: data.paidAt ?? null,
+      items: {
+        create: {
+          productId: data.productId,
+          nameSnapshot: 'Producto',
+          unitPriceCentsSnapshot: unit,
+          quantity,
+        },
+      },
+      payments: { create: { provider: 'mercadopago', amountCents: unit * quantity } },
+    },
+  });
+}
+
+/**
+ * Signs a webhook exactly as Mercado Pago documents it (written here by hand, not using
+ * the app code): HMAC-SHA256 hex of `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`.
+ */
+export function signWebhook(dataId: string, requestId: string, secret = WEBHOOK_SECRET) {
+  const ts = String(Math.floor(Date.now() / 1000));
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const v1 = createHmac('sha256', secret).update(manifest).digest('hex');
+  return `ts=${ts},v1=${v1}`;
+}
+
+let notificationSeq = 1000;
+export function sendWebhook(
+  ctx: TestContext,
+  paymentId: string,
+  opts: { notificationId?: number; secret?: string; signature?: string } = {},
+) {
+  const requestId = `req-${paymentId}-${notificationSeq}`;
+  const notificationId = opts.notificationId ?? notificationSeq++;
+  return request(ctx.app)
+    .post(`${API}/webhooks/mercadopago?data.id=${paymentId}&type=payment`)
+    .set('Content-Type', 'application/json')
+    .set('x-request-id', requestId)
+    .set('x-signature', opts.signature ?? signWebhook(paymentId, requestId, opts.secret))
+    .send({
+      id: notificationId,
+      type: 'payment',
+      action: 'payment.updated',
+      data: { id: paymentId },
+    });
 }
 
 export async function productState(ctx: TestContext, id: string) {
