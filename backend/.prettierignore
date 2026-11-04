@@ -1,0 +1,5 @@
+dist
+coverage
+uploads
+src/generated
+prisma/migrations
