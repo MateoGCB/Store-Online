@@ -4,6 +4,7 @@ import cors from 'cors';
 import express, { type Express, type Router } from 'express';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
 import { apiOrigin } from './config/env.js';
 import type { Deps } from './deps.js';
 import './lib/validation.js';
@@ -11,6 +12,7 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { originCheck } from './middleware/origin-check.js';
 import { createRateLimiters, type RateLimitConfig } from './middleware/rate-limit.js';
 import { genRequestId } from './middleware/request-id.js';
+import { buildOpenApiDocument } from './openapi/document.js';
 import { buildApiRouter } from './routes/index.js';
 
 export const API_PREFIX = '/api/v1';
@@ -81,6 +83,12 @@ export function createApp(deps: Deps, options: AppOptions = {}): Express {
       setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
     }),
   );
+
+  const openApiDocument = buildOpenApiDocument(env);
+  app.get('/docs/openapi.json', (_req, res) => {
+    res.json(openApiDocument);
+  });
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
   const limiters = createRateLimiters({
     loginMax: options.rateLimits?.loginMax ?? env.RATE_LIMIT_LOGIN_MAX,
