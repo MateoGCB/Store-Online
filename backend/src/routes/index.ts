@@ -3,6 +3,7 @@ import type { Deps } from '../deps.js';
 import type { RateLimiters } from '../middleware/rate-limit.js';
 import { registerAdminRoutes } from './admin.routes.js';
 import { registerAuthRoutes } from './auth.routes.js';
+import { registerCartRoutes } from './cart.routes.js';
 import { registerCatalogRoutes } from './catalog.routes.js';
 import { registerHealthRoute } from './health.routes.js';
 
@@ -16,5 +17,6 @@ export function buildApiRouter(deps: Deps, limiters: RateLimiters): Router {
   registerAuthRoutes(router, deps, limiters);
   registerCatalogRoutes(router, deps);
   registerAdminRoutes(router, deps);
+  registerCartRoutes(router, deps);
   return router;
 }
