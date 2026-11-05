@@ -98,6 +98,45 @@ test('admin screens pass axe too', async ({ page }) => {
   expect(Object.values(report).flat()).toEqual([]);
 });
 
+test('focus pages: login, register and checkout get the reduced header', async ({ page }) => {
+  const banner = page.getByRole('banner');
+  for (const url of ['/login', '/register']) {
+    await page.goto(url);
+    await expect(banner.getByRole('link', { name: 'Volver a la tienda' })).toBeVisible();
+    await expect(banner.getByRole('search')).toHaveCount(0);
+    await expect(banner.getByRole('link', { name: /carrito/i })).toHaveCount(0);
+    await expect(banner.getByText('Ingresar')).toHaveCount(0);
+    await expect(banner.getByRole('link')).toHaveCount(2);
+  }
+  // Keyboard: the way back is reachable with Tab and works with Enter.
+  await page.goto('/login');
+  const back = banner.getByRole('link', { name: 'Volver a la tienda' });
+  for (let i = 0; i < 5 && !(await back.evaluate((el) => el === document.activeElement)); i++) {
+    await page.keyboard.press('Tab');
+  }
+  await expect(back).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(banner.getByRole('search')).toBeVisible();
+
+  const admin = await adminApi();
+  const product = await createProduct(admin, { name: uniqueName('Foco e2e'), stock: 2 });
+  await registerViaApi(page.request);
+  await api(page.request, 'PUT', `/cart/items/${product.id}`, { quantity: 1 });
+  await page.goto('/checkout');
+  await expect(page.getByRole('heading', { level: 1, name: 'Finalizar compra' })).toBeVisible();
+  await expect(banner.getByRole('search')).toHaveCount(0);
+  await expect(banner.getByRole('button')).toHaveCount(0);
+  await expect(banner.getByRole('link')).toHaveCount(2);
+  await banner.getByRole('link', { name: 'Volver al carrito' }).click();
+  await expect(page).toHaveURL(/\/cart$/);
+  // The rest of the store, /checkout/result included, keeps the full header.
+  await expect(banner.getByRole('search')).toBeVisible();
+  await page.goto('/checkout/result?orderId=00000000-0000-4000-8000-000000000000');
+  await expect(banner.getByRole('search')).toBeVisible();
+  await expect(banner.getByRole('link', { name: /^Carrito/ })).toBeVisible();
+});
+
 test.describe('375 px wide (mobile first)', () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
@@ -121,7 +160,12 @@ test.describe('375 px wide (mobile first)', () => {
     ];
     await registerViaApi(page.request);
     await api(page.request, 'PUT', `/cart/items/${product.id}`, { quantity: 1 });
-    pages.push(['movil-carrito', '/cart'], ['movil-checkout', '/checkout']);
+    pages.push(
+      ['movil-carrito', '/cart'],
+      ['movil-checkout', '/checkout'],
+      ['movil-ingresar', '/login'],
+      ['movil-registro', '/register'],
+    );
     for (const [name, url] of pages) {
       await page.goto(url);
       await page.waitForLoadState('networkidle');

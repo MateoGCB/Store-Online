@@ -12,7 +12,10 @@ npm run dev             # http://localhost:3000
 
 ```
 src/
-  app/(shop)/      tienda: inicio, catálogo, producto, carrito, cuenta, checkout, pago simulado
+  app/(shop)/      tienda con el encabezado completo: inicio, catálogo, producto, carrito,
+                   cuenta, resultado del pago, pago simulado
+  app/(auth)/      ingreso y registro, con encabezado reducido ("Volver a la tienda")
+  app/(checkout)/  /checkout, con encabezado reducido ("Volver al carrito")
   app/admin/       panel (la guarda de rol corre en el servidor con GET /auth/me)
   components/      ui/ (botones, campos, diálogos, toasts…), shop/, account/, orders/, admin/
   hooks/           sesión, carrito, direcciones, pedidos, admin (TanStack Query)
@@ -29,6 +32,7 @@ e2e/               Playwright (npm run e2e)
 - **Diseño:** colores, tipografías, radios, sombras y animaciones viven solo en el bloque `@theme` de `src/app/globals.css`.
 - **Imágenes:** `next/image` optimiza `/uploads/**` como imágenes locales (`localPatterns`), sin habilitar IPs privadas en el optimizador.
 - **Tipos de la API:** `npm run api:types` los regenera desde la spec del backend (`../backend`, sin necesidad de levantarlo); `npm run api:types:check` falla si quedaron desactualizados.
+- **Encabezados por grupo de rutas:** cada grupo (`(shop)`, `(auth)`, `(checkout)`) tiene su propio `layout.tsx`; los paréntesis no forman parte de la URL. Así las páginas de foco no muestran buscador, carrito ni menú de cuenta sin condicionales por ruta.
 - **Dinero:** la API manda centavos enteros; el frontend solo los formatea. Los precios que carga el admin se convierten a centavos sin usar decimales de punto flotante.
 
 ## Calidad
