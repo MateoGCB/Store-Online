@@ -92,3 +92,12 @@ describe('OpenAPI', () => {
     }
   });
 });
+
+describe('OpenAPI nullability', () => {
+  it('a cart line without image is valid against the spec (image: Image | null)', async () => {
+    const spec = (await request(ctx.app).get('/docs/openapi.json')).body;
+    const image = spec.components.schemas.Cart.properties.items.items.properties.image;
+    expect(image.allOf).toBeUndefined();
+    expect(image.anyOf).toEqual([{ $ref: '#/components/schemas/Image' }, { type: 'null' }]);
+  });
+});

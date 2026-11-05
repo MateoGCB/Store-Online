@@ -130,7 +130,9 @@ export const Cart = z
         productId: uuid,
         name: z.string(),
         slug: z.string(),
-        image: Image.nullable(),
+        // A union (anyOf) keeps null valid; `Image.nullable()` on a registered schema is
+        // emitted as allOf[Image, object|null], which would reject null.
+        image: z.union([Image, z.null()]),
         unitPriceCents: cents(450000),
         quantity: z.number().int().openapi({ example: 2 }),
         lineTotalCents: cents(900000),
