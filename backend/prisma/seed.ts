@@ -209,23 +209,51 @@ function escapeXml(value: string) {
   return value.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** Solid color image with the product name, generated locally (no downloads). */
-async function placeholderImage(name: string, color: string): Promise<Buffer> {
-  const words = name.split(' ');
+/** Mixes a hex color with white (amount > 0) or black (amount < 0). */
+function shade(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const channel = (v: number) =>
+    Math.round(amount >= 0 ? v + (255 - v) * amount : v * (1 + amount))
+      .toString(16)
+      .padStart(2, '0');
+  return `#${channel(n >> 16)}${channel((n >> 8) & 255)}${channel(n & 255)}`;
+}
+
+function wrap(name: string): string[] {
   const lines: string[] = [];
-  for (const word of words) {
+  for (const word of name.split(' ')) {
     const last = lines[lines.length - 1];
     if (last && (last + ' ' + word).length <= 18) lines[lines.length - 1] = `${last} ${word}`;
     else lines.push(word);
   }
+  return lines;
+}
+
+/**
+ * Sample product photos generated locally with sharp (no downloads): variant 0 is a soft
+ * gradient with the product name, variant 1 a "detail" shot with circles. Real photos can
+ * be uploaded later from the admin panel.
+ */
+async function placeholderImage(name: string, color: string, variant: 0 | 1): Promise<Buffer> {
+  const light = shade(color, 0.55);
+  const dark = shade(color, -0.35);
+  const lines = wrap(name);
   const text = lines
     .map(
       (line, i) =>
-        `<text x="400" y="${400 + (i - (lines.length - 1) / 2) * 70}" font-size="56" font-family="sans-serif" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">${escapeXml(line)}</text>`,
+        `<text x="400" y="${640 + (i - (lines.length - 1)) * 60}" font-size="50" font-family="Georgia, serif" fill="#ffffff" fill-opacity="0.95" text-anchor="middle">${escapeXml(line)}</text>`,
     )
     .join('');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800"><rect width="100%" height="100%" fill="${color}"/>${text}</svg>`;
-  return sharp(Buffer.from(svg)).webp({ quality: 80 }).toBuffer();
+  const art =
+    variant === 0
+      ? `<circle cx="400" cy="330" r="190" fill="${light}" fill-opacity="0.55"/><circle cx="470" cy="270" r="90" fill="#ffffff" fill-opacity="0.18"/>${text}`
+      : `<circle cx="260" cy="280" r="150" fill="${light}" fill-opacity="0.45"/><circle cx="540" cy="520" r="210" fill="${dark}" fill-opacity="0.35"/><circle cx="560" cy="250" r="60" fill="#ffffff" fill-opacity="0.25"/>`;
+  const gradient =
+    variant === 0
+      ? `<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${dark}"/></linearGradient>`
+      : `<radialGradient id="g" cx="0.3" cy="0.3" r="0.9"><stop offset="0" stop-color="${shade(color, 0.3)}"/><stop offset="1" stop-color="${dark}"/></radialGradient>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800"><defs>${gradient}</defs><rect width="100%" height="100%" fill="url(#g)"/>${art}</svg>`;
+  return sharp(Buffer.from(svg)).webp({ quality: 82 }).toBuffer();
 }
 
 async function main() {
@@ -245,7 +273,7 @@ async function main() {
     where: { id: 1 },
     create: {
       id: 1,
-      storeName: 'Tienda de Prueba',
+      storeName: 'TIENDA',
       shippingCostCents: 350000,
       pickupAddress: 'Calle Falsa 123, Ciudad de Ejemplo (lunes a viernes de 10 a 18 h)',
     },
@@ -288,12 +316,19 @@ async function main() {
       }
       created++;
     }
+    // Two sample images per product (only the missing ones, so re-running never duplicates).
     const imageCount = await prisma.productImage.count({ where: { productId: product.id } });
-    if (imageCount === 0) {
+    for (let position = imageCount; position < 2; position++) {
       const key = `products/${randomUUID()}.webp`;
-      await storage.save(key, await placeholderImage(p.name, p.color), 'image/webp');
+      const variant = position === 0 ? 0 : 1;
+      await storage.save(key, await placeholderImage(p.name, p.color, variant), 'image/webp');
       await prisma.productImage.create({
-        data: { productId: product.id, storageKey: key, position: 0, alt: p.name },
+        data: {
+          productId: product.id,
+          storageKey: key,
+          position,
+          alt: variant === 0 ? p.name : `${p.name} (detalle)`,
+        },
       });
       images++;
     }
