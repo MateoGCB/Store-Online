@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/toast';
 import { useCart, useClearCart, useRemoveCartItem, useSetCartItem } from '@/hooks/use-cart';
 import { errorMessage } from '@/lib/api/errors';
 import type { CartLine as CartLineType } from '@/lib/api/types';
+import { pluralize } from '@/lib/format/plural';
 import { insufficientStockMessage } from './add-to-cart';
 import { ProductImage } from './product-image';
 import { QuantitySelector } from './quantity-selector';
@@ -154,7 +155,7 @@ export function CartView() {
         </h2>
         <div className="flex justify-between text-sm">
           <span className="text-muted">
-            Subtotal ({cart.itemCount} {cart.itemCount === 1 ? 'unidad' : 'unidades'})
+            Subtotal ({pluralize(cart.itemCount, 'unidad', 'unidades')})
           </span>
           <Price cents={cart.subtotalCents} className="font-semibold text-ink" />
         </div>

@@ -2,6 +2,7 @@
 
 import { Minus, Plus } from 'lucide-react';
 import { useId } from 'react';
+import { pluralize } from '@/lib/format/plural';
 
 export const MAX_UNITS_PER_PRODUCT = 20;
 
@@ -87,9 +88,7 @@ export function QuantitySelector({
         </button>
       </div>
       {max > 0 && (
-        <p className="text-xs text-muted">
-          Máximo {max} {max === 1 ? 'unidad' : 'unidades'}
-        </p>
+        <p className="text-xs text-muted">Máximo {pluralize(max, 'unidad', 'unidades')}</p>
       )}
     </div>
   );

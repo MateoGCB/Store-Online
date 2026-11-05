@@ -20,7 +20,7 @@ src/
   components/      ui/ (botones, campos, diálogos, toasts…), shop/, account/, orders/, admin/
   hooks/           sesión, carrito, direcciones, pedidos, admin (TanStack Query)
   lib/api/         cliente HTTP único, errores (ApiError), tipos generados (schema.d.ts)
-  lib/format/      dinero (centavos -> ARS) y fechas (UTC -> hora de Argentina)
+  lib/format/      dinero (centavos -> ARS), fechas (UTC -> hora de Argentina) y plurales
   lib/orders/      etiquetas de estado y tabla única de transiciones
 tests/             unidad y componentes (Vitest + Testing Library + MSW)
 e2e/               Playwright (npm run e2e)

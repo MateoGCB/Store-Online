@@ -13,6 +13,7 @@ import { useAdjustStock, useStockMovements } from '@/hooks/use-admin';
 import { errorMessage, isApiError } from '@/lib/api/errors';
 import type { AdminProduct, StockMovement } from '@/lib/api/types';
 import { formatDateTime } from '@/lib/format/dates';
+import { pluralize } from '@/lib/format/plural';
 
 export const STOCK_REASON_LABELS: Record<StockMovement['reason'], string> = {
   INITIAL: 'Stock inicial',
@@ -53,13 +54,13 @@ export function StockPanel({ product }: { product: AdminProduct }) {
       { delta: Number(values.delta), note: values.note },
       {
         onSuccess: (p) => {
-          toast.show(`Stock actualizado: ${p.stock} unidades.`);
+          toast.show(`Stock actualizado: ${pluralize(p.stock, 'unidad', 'unidades')}.`);
           reset();
         },
         onError: (err) =>
           setFormError(
             isApiError(err) && err.code === 'STOCK_BELOW_RESERVED'
-              ? `No podés dejar menos stock que las ${product.reserved} unidades reservadas por pedidos pendientes.`
+              ? `No podés dejar menos stock que lo reservado por pedidos pendientes (${pluralize(product.reserved, 'unidad', 'unidades')}).`
               : errorMessage(err),
           ),
       },

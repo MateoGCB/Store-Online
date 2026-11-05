@@ -8,6 +8,7 @@ import { Price } from '@/components/ui/price';
 import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useAdminStats } from '@/hooks/use-admin';
+import { pluralize } from '@/lib/format/plural';
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from '@/lib/orders/status';
 import { AdminPageHeader } from './page-header';
 
@@ -88,7 +89,7 @@ export function StatsView() {
             className="rounded-card border border-line bg-surface p-5"
           >
             <h2 id="low-stock" className="font-display text-xl text-ink">
-              Stock bajo (hasta {data.lowStockThreshold} unidades)
+              Stock bajo (hasta {pluralize(data.lowStockThreshold, 'unidad', 'unidades')})
             </h2>
             {data.lowStockProducts.length === 0 ? (
               <p className="mt-3 text-sm text-muted">No hay productos con stock bajo.</p>

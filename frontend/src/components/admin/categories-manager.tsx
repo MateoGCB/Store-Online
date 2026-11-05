@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import { useAdminCategories, useDeleteCategory, useSaveCategory } from '@/hooks/use-admin';
 import { errorMessage, isApiError } from '@/lib/api/errors';
 import type { AdminCategory } from '@/lib/api/types';
+import { pluralize } from '@/lib/format/plural';
 import { AdminPageHeader } from './page-header';
 
 function CategoryDialog({
@@ -108,7 +109,7 @@ export function CategoriesManager() {
               <div>
                 <p className="font-medium text-ink">{c.name}</p>
                 <p className="text-xs text-muted">
-                  /{c.slug} · {c.productCount} {c.productCount === 1 ? 'producto' : 'productos'}
+                  /{c.slug} · {pluralize(c.productCount, 'producto', 'productos')}
                 </p>
               </div>
               <div className="flex gap-2">

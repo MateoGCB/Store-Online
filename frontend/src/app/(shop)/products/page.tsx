@@ -8,6 +8,7 @@ import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { getCategories, getProducts } from '@/lib/api/server';
 import { catalogHref, hasActiveFilters, parseCatalogParams, toApiQuery } from '@/lib/catalog/query';
+import { pluralize } from '@/lib/format/plural';
 
 export const metadata: Metadata = {
   title: 'Productos',
@@ -61,7 +62,7 @@ async function CatalogResults({
       <section aria-labelledby="results-heading" className="space-y-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="results-heading" className="text-sm text-muted" aria-live="polite">
-            {data.total === 1 ? '1 producto' : `${data.total} productos`}
+            {pluralize(data.total, 'producto', 'productos')}
             {filters.q && <> para “{filters.q}”</>}
             {categoryName && <> en {categoryName}</>}
           </h2>

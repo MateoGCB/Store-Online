@@ -10,6 +10,7 @@ import { LoadingRegion, Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { useMyOrders } from '@/hooks/use-orders';
 import { formatDateTime } from '@/lib/format/dates';
+import { pluralize } from '@/lib/format/plural';
 import { FULFILLMENT_LABELS } from '@/lib/orders/status';
 import { OrderStatusBadge } from './order-status-badge';
 
@@ -55,7 +56,11 @@ export function MyOrdersView() {
                 </div>
                 <p className="text-sm text-muted">
                   {formatDateTime(order.createdAt)} · {FULFILLMENT_LABELS[order.fulfillment]} ·{' '}
-                  {order.items.reduce((n, i) => n + i.quantity, 0)} unidades
+                  {pluralize(
+                    order.items.reduce((n, i) => n + i.quantity, 0),
+                    'unidad',
+                    'unidades',
+                  )}
                 </p>
               </div>
               <Price cents={order.totalCents} className="font-semibold text-ink" />

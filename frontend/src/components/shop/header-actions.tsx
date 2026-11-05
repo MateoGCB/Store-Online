@@ -17,13 +17,14 @@ import { useToast } from '@/components/ui/toast';
 import { useCart } from '@/hooks/use-cart';
 import { useLogout, useSession } from '@/hooks/use-session';
 import { loginUrl } from '@/lib/auth/next-param';
+import { pluralize } from '@/lib/format/plural';
 
 function CartLink() {
   const { user } = useSession();
   const { data } = useCart();
   const count = user ? (data?.itemCount ?? 0) : 0;
   const label =
-    count === 0 ? 'Carrito, vacío' : `Carrito, ${count} ${count === 1 ? 'producto' : 'productos'}`;
+    count === 0 ? 'Carrito, vacío' : `Carrito, ${pluralize(count, 'producto', 'productos')}`;
   return (
     <Link
       href="/cart"
