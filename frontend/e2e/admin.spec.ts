@@ -7,6 +7,7 @@ import {
   createProduct,
   expect,
   newCustomerPage,
+  pointAt,
   pendingOrder,
   registerViaApi,
   uniqueName,
@@ -79,7 +80,13 @@ test('7. the admin moves an order PAID -> PREPARING -> READY_FOR_PICKUP -> DELIV
   });
 
   await loginAsAdmin(page);
-  await page.goto(`/admin/orders/${order.id}`);
+  // Clicking anywhere on the row (here the delivery cell, not the link) opens the order.
+  await page.goto(`/admin/orders?number=${order.number}`);
+  const row = page.getByRole('row').filter({ hasText: `#${order.number}` });
+  const overDelivery = await pointAt(page, row.getByRole('cell', { name: 'Retiro en el local' }));
+  expect(overDelivery.href).toBe(`/admin/orders/${order.id}`);
+  await overDelivery.click();
+  await expect(page).toHaveURL(new RegExp(`/admin/orders/${order.id}$`));
   await expect(
     page.getByRole('heading', { level: 1, name: `Pedido #${order.number}` }),
   ).toBeVisible();
@@ -100,4 +107,50 @@ test('7. the admin moves an order PAID -> PREPARING -> READY_FOR_PICKUP -> DELIV
     customer.page.getByText('Tu pedido fue entregado. ¡Gracias por tu compra!'),
   ).toBeVisible();
   await customer.context.close();
+});
+
+test('9. admin tables: the whole row is one real link (keyboard focus is visible)', async ({
+  page,
+}) => {
+  const admin = await adminApi();
+  const product = await createProduct(admin, { name: uniqueName('Fila e2e'), stock: 2 });
+  await loginAsAdmin(page);
+  await page.goto('/admin/products');
+  await page.getByLabel('Buscar').fill(product.name);
+  await page.getByRole('button', { name: 'Buscar' }).click();
+  const row = page.getByRole('row').filter({ hasText: product.name });
+  await expect(row.getByRole('link')).toHaveCount(1);
+  await expect(row.getByRole('button')).toHaveCount(0);
+
+  // Over any part of the row (here the stock cell) the pointer is on the product link, with
+  // the hand cursor, and the row is highlighted.
+  const before = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
+  const overStock = await pointAt(page, row.getByRole('cell').nth(2));
+  expect(overStock.href).toBe(`/admin/products/${product.id}`);
+  expect(overStock.cursor).toBe('pointer');
+  await expect
+    .poll(() => row.evaluate((el) => getComputedStyle(el).backgroundColor))
+    .not.toBe(before);
+  await page.mouse.move(0, 0);
+
+  // Keyboard: Tab reaches the link, the outline is drawn around the whole row, Enter opens it.
+  const link = row.getByRole('link', { name: product.name });
+  await page.getByLabel('Mostrar').focus();
+  for (let i = 0; i < 6 && !(await link.evaluate((el) => el === document.activeElement)); i++) {
+    await page.keyboard.press('Tab');
+  }
+  await expect(link).toBeFocused();
+  const ring = await link.evaluate((el) => {
+    const after = getComputedStyle(el, '::after');
+    return {
+      style: after.outlineStyle,
+      width: Math.round(parseFloat(after.width)),
+      rowWidth: Math.round(el.closest('tr')!.getBoundingClientRect().width),
+    };
+  });
+  expect(ring.style).toBe('solid');
+  expect(ring.width).toBe(ring.rowWidth);
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`/admin/products/${product.id}$`));
+  await expect(page.getByRole('heading', { level: 1, name: product.name })).toBeVisible();
 });

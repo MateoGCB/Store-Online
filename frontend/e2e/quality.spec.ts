@@ -1,7 +1,15 @@
 import AxeBuilder from '@axe-core/playwright';
 import { type Page, test } from '@playwright/test';
 import path from 'node:path';
-import { adminApi, api, createProduct, expect, registerViaApi, uniqueName } from './support';
+import {
+  adminApi,
+  api,
+  createProduct,
+  expect,
+  pointAt,
+  registerViaApi,
+  uniqueName,
+} from './support';
 
 /** Screenshots go OUTSIDE the repo, only when E2E_SCREENSHOT_DIR is set. */
 async function snap(page: Page, name: string) {
@@ -148,6 +156,32 @@ test.describe('375 px wide (mobile first)', () => {
     await expect(category).toBeHidden();
     await toggle.click();
     await expect(category).toBeVisible();
+  });
+
+  test('admin at 375 px: no page overflow and rows still open', async ({ page }) => {
+    const admin = await adminApi();
+    const product = await createProduct(admin, { name: uniqueName('Movil admin'), stock: 2 });
+    await api(page.request, 'POST', '/auth/login', {
+      email: process.env.E2E_ADMIN_EMAIL,
+      password: process.env.E2E_ADMIN_PASSWORD,
+    });
+    for (const url of ['/admin/orders', '/admin/products']) {
+      await page.goto(url);
+      await page.waitForLoadState('networkidle');
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow, `${url} overflows by ${overflow}px`).toBeLessThanOrEqual(0);
+      await snap(page, `movil-${url.replaceAll('/', '-').slice(1)}`);
+    }
+    // The table scrolls inside its own box; a tap on the price cell opens the product.
+    await page.getByLabel('Buscar').fill(product.name);
+    await page.getByRole('button', { name: 'Buscar' }).click();
+    const row = page.getByRole('row').filter({ hasText: product.name });
+    const overPrice = await pointAt(page, row.getByRole('cell').nth(1));
+    expect(overPrice.href).toBe(`/admin/products/${product.id}`);
+    await overPrice.click();
+    await expect(page).toHaveURL(new RegExp(`/admin/products/${product.id}$`));
   });
 
   test('no horizontal scroll on the main screens', async ({ page }) => {

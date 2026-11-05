@@ -33,6 +33,7 @@ e2e/               Playwright (npm run e2e)
 - **Imágenes:** `next/image` optimiza `/uploads/**` como imágenes locales (`localPatterns`), sin habilitar IPs privadas en el optimizador.
 - **Tipos de la API:** `npm run api:types` los regenera desde la spec del backend (`../backend`, sin necesidad de levantarlo); `npm run api:types:check` falla si quedaron desactualizados.
 - **Encabezados por grupo de rutas:** cada grupo (`(shop)`, `(auth)`, `(checkout)`) tiene su propio `layout.tsx`; los paréntesis no forman parte de la URL. Así las páginas de foco no muestran buscador, carrito ni menú de cuenta sin condicionales por ruta.
+- **Tablas del admin:** la fila entera abre el detalle con un enlace real "estirado" (`RowLink`): sirve con teclado, lector de pantalla y "abrir en otra pestaña". Un control interactivo dentro de esas filas necesita `relative z-10`.
 - **Dinero:** la API manda centavos enteros; el frontend solo los formatea. Los precios que carga el admin se convierten a centavos sin usar decimales de punto flotante.
 
 ## Calidad

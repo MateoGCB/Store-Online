@@ -1,7 +1,6 @@
 'use client';
 
 import { AlertTriangle } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { OrderStatusBadge } from '@/components/orders/order-status-badge';
@@ -16,6 +15,7 @@ import type { OrderStatus } from '@/lib/api/types';
 import { formatDateTime } from '@/lib/format/dates';
 import { FULFILLMENT_LABELS, ORDER_STATUSES, ORDER_STATUS_LABELS } from '@/lib/orders/status';
 import { AdminPageHeader } from './page-header';
+import { RowLink, linkRowClass } from './row-link';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -177,15 +177,14 @@ function OrdersTableView({ params }: { params: OrderListParams }) {
                 {data.items.map((o) => (
                   <tr
                     key={o.id}
-                    className={o.needsAttention ? 'bg-warning-soft/60' : 'hover:bg-canvas'}
+                    className={`${linkRowClass} ${
+                      o.needsAttention
+                        ? 'bg-warning-soft/60 focus-within:bg-warning-soft hover:bg-warning-soft'
+                        : 'focus-within:bg-canvas hover:bg-canvas'
+                    }`}
                   >
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/orders/${o.id}`}
-                        className="font-medium text-ink hover:underline"
-                      >
-                        #{o.number}
-                      </Link>
+                      <RowLink href={`/admin/orders/${o.id}`}>#{o.number}</RowLink>
                       <span className="block text-xs text-muted">
                         {formatDateTime(o.createdAt)}
                       </span>

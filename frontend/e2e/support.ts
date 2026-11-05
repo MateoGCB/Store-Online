@@ -1,6 +1,8 @@
 import {
   type APIRequestContext,
   type Browser,
+  type Locator,
+  type Page,
   expect,
   request as playwrightRequest,
 } from '@playwright/test';
@@ -108,6 +110,33 @@ export async function newCustomerPage(browser: Browser) {
   });
   const page = await context.newPage();
   return { context, page };
+}
+
+/**
+ * Moves the real mouse to the center of `target` (a table cell, for example) and returns
+ * what is under the pointer there. Locator.hover/click refuse to act when another element
+ * covers the target, which is exactly what a stretched row link does on purpose.
+ */
+export async function pointAt(page: Page, target: Locator) {
+  // Like a person would: scroll it into view first (tables scroll inside their box on mobile).
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  if (!box) throw new Error('target is not visible');
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  const under = await page.evaluate(
+    ([px, py]) => {
+      const el = document.elementFromPoint(px, py);
+      const link = el?.closest('a');
+      return {
+        href: link?.getAttribute('href') ?? null,
+        cursor: el ? getComputedStyle(el).cursor : '',
+      };
+    },
+    [x, y] as const,
+  );
+  return { ...under, click: () => page.mouse.click(x, y) };
 }
 
 export { expect };

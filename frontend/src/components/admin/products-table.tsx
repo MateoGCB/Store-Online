@@ -1,7 +1,6 @@
 'use client';
 
 import { Plus, Search } from 'lucide-react';
-import Link from 'next/link';
 import { useState } from 'react';
 import { ProductImage } from '@/components/shop/product-image';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,7 @@ import { EmptyState, ErrorState } from '@/components/ui/states';
 import { type ProductListParams, useAdminProducts } from '@/hooks/use-admin';
 import type { AdminProduct } from '@/lib/api/types';
 import { AdminPageHeader } from './page-header';
+import { RowLink, linkRowClass } from './row-link';
 
 export function productStatus(p: Pick<AdminProduct, 'active' | 'archivedAt'>) {
   if (p.archivedAt) return <Badge>Archivado</Badge>;
@@ -121,7 +121,10 @@ export function ProductsTable() {
               </thead>
               <tbody className="divide-y divide-line">
                 {data.items.map((p) => (
-                  <tr key={p.id} className="hover:bg-canvas">
+                  <tr
+                    key={p.id}
+                    className={`${linkRowClass} focus-within:bg-canvas hover:bg-canvas`}
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <ProductImage
@@ -131,12 +134,7 @@ export function ProductsTable() {
                           className="w-12 shrink-0 rounded-control"
                         />
                         <div className="min-w-0">
-                          <Link
-                            href={`/admin/products/${p.id}`}
-                            className="font-medium text-ink hover:underline"
-                          >
-                            {p.name}
-                          </Link>
+                          <RowLink href={`/admin/products/${p.id}`}>{p.name}</RowLink>
                           <p className="text-xs text-muted">{p.category.name}</p>
                         </div>
                       </div>
