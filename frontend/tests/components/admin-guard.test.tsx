@@ -2,9 +2,10 @@ import { render, screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { vi } from 'vitest';
 import { AdminGuard } from '@/components/admin/admin-guard';
-import { admin, customer } from '../support/fixtures';
+import { admin, customer, storeInfo } from '../support/fixtures';
 import { navigation } from '../support/next-mocks';
-import { server } from '../support/server';
+import { renderWithProviders } from '../support/render';
+import { API, server } from '../support/server';
 
 const headers = vi.hoisted(() => ({ session: undefined as string | undefined }));
 vi.mock('next/headers', () => ({
@@ -47,8 +48,12 @@ describe('AdminGuard (server-side role check)', () => {
 
   it('an admin sees the panel', async () => {
     headers.session = 'admin-token';
-    server.use(http.get(`${BACKEND}/auth/me`, () => HttpResponse.json({ user: admin })));
-    render(await AdminGuard({ children: <p>Panel secreto</p> }));
+    server.use(
+      http.get(`${BACKEND}/auth/me`, () => HttpResponse.json({ user: admin })),
+      // The panel shell reads the store name in the browser (same query as the settings page).
+      http.get(`${API}/store-info`, () => HttpResponse.json(storeInfo)),
+    );
+    renderWithProviders(await AdminGuard({ children: <p>Panel secreto</p> }));
     expect(screen.getByText('Panel secreto')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Administración' })).toBeInTheDocument();
   });

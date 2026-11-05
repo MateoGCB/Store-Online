@@ -82,7 +82,8 @@ test('accessibility (axe, WCAG 2.1 AA) and console on the main screens', async (
   expect(errors).toEqual([]);
 });
 
-test('admin screens pass axe too', async ({ page }) => {
+test('admin screens pass axe too (and log no console errors)', async ({ page }) => {
+  const errors = collectConsoleErrors(page);
   await api(page.request, 'POST', '/auth/login', {
     email: process.env.E2E_ADMIN_EMAIL,
     password: process.env.E2E_ADMIN_PASSWORD,
@@ -104,6 +105,7 @@ test('admin screens pass axe too', async ({ page }) => {
   }
   console.log('axe admin:', JSON.stringify(report, null, 2));
   expect(Object.values(report).flat()).toEqual([]);
+  expect(errors).toEqual([]);
 });
 
 test('focus pages: login, register and checkout get the reduced header', async ({ page }) => {
@@ -158,16 +160,20 @@ test.describe('375 px wide (mobile first)', () => {
     await expect(category).toBeVisible();
   });
 
-  test('admin at 375 px: no page overflow and rows still open', async ({ page }) => {
+  test('admin at 375 px: store name title, no page overflow, rows still open', async ({ page }) => {
     const admin = await adminApi();
     const product = await createProduct(admin, { name: uniqueName('Movil admin'), stock: 2 });
     await api(page.request, 'POST', '/auth/login', {
       email: process.env.E2E_ADMIN_EMAIL,
       password: process.env.E2E_ADMIN_PASSWORD,
     });
+    const storeInfo = await api<{ storeName: string }>(page.request, 'GET', '/store-info');
     for (const url of ['/admin/orders', '/admin/products']) {
       await page.goto(url);
       await page.waitForLoadState('networkidle');
+      const sidebar = page.getByRole('complementary');
+      await expect(sidebar.getByText(storeInfo.storeName, { exact: true })).toBeVisible();
+      await expect(sidebar.getByText('Administración', { exact: true })).toBeVisible();
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,
       );

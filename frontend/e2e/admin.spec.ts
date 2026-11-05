@@ -80,6 +80,12 @@ test('7. the admin moves an order PAID -> PREPARING -> READY_FOR_PICKUP -> DELIV
   });
 
   await loginAsAdmin(page);
+  // The sidebar title is the store name (from store-info) and the subtitle "Administración".
+  const storeInfo = await api<{ storeName: string }>(page.request, 'GET', '/store-info');
+  const sidebar = page.getByRole('complementary');
+  await expect(sidebar.getByText(storeInfo.storeName, { exact: true })).toBeVisible();
+  await expect(sidebar.getByText('Administración', { exact: true })).toBeVisible();
+
   // Clicking anywhere on the row (here the delivery cell, not the link) opens the order.
   await page.goto(`/admin/orders?number=${order.number}`);
   const row = page.getByRole('row').filter({ hasText: `#${order.number}` });

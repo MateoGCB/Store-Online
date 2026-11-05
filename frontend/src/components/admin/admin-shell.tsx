@@ -3,6 +3,8 @@
 import { FolderTree, LayoutDashboard, Package, Settings, ShoppingCart, Store } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useStoreInfo } from '@/hooks/use-orders';
 
 const NAV = [
   { href: '/admin', label: 'Resumen', icon: LayoutDashboard, exact: true },
@@ -12,14 +14,10 @@ const NAV = [
   { href: '/admin/settings', label: 'Configuración', icon: Settings },
 ];
 
-export function AdminShell({
-  userName,
-  children,
-}: {
-  userName: string;
-  children: React.ReactNode;
-}) {
+export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // Same query as the settings page: saving a new store name updates this title at once.
+  const storeInfo = useStoreInfo();
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
@@ -33,9 +31,15 @@ export function AdminShell({
       </a>
       <aside className="border-b border-line bg-surface lg:sticky lg:top-0 lg:h-dvh lg:border-r lg:border-b-0">
         <div className="flex items-center justify-between gap-3 px-4 py-4 lg:block lg:px-5 lg:py-6">
-          <div>
-            <p className="font-display text-lg text-ink">Administración</p>
-            <p className="truncate text-xs text-muted">{userName}</p>
+          <div className="min-w-0">
+            {storeInfo.isPending ? (
+              <Skeleton className="h-7 w-32" />
+            ) : (
+              <p className="truncate font-display text-lg text-ink">
+                {storeInfo.data?.storeName || 'Tienda'}
+              </p>
+            )}
+            <p className="text-sm text-muted">Administración</p>
           </div>
           <Link
             href="/"

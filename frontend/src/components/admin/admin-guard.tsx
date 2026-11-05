@@ -17,7 +17,7 @@ export async function AdminGuard({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser(session ? `${SESSION_COOKIE}=${session}` : undefined);
   if (!user) redirect('/login?next=/admin');
   if (user.role !== 'ADMIN') return <NoPermission />;
-  return <AdminShell userName={user.name}>{children}</AdminShell>;
+  return <AdminShell>{children}</AdminShell>;
 }
 
 export function NoPermission() {
