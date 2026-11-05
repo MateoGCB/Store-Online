@@ -86,6 +86,19 @@ describe('cart', () => {
     expect(res.body.error.details).toEqual({ productId: p.id, available: 3 });
   });
 
+  it('words the stock message in the right number for 0, 1 and 2 available units', async () => {
+    const { client: c } = await loggedIn(ctx);
+    const messageFor = async (stock: number) => {
+      const p = await createProduct(ctx, { stock });
+      const res = await c.put(`/cart/items/${p.id}`, { quantity: stock + 1 });
+      expect(res.status).toBe(409);
+      return res.body.error.message;
+    };
+    expect(await messageFor(0)).toBe('Este producto no tiene stock disponible.');
+    expect(await messageFor(1)).toBe('Solo hay 1 unidad disponible.');
+    expect(await messageFor(2)).toBe('Solo hay 2 unidades disponibles.');
+  });
+
   it('archived or inactive products cannot be added and show a warning if already in the cart', async () => {
     const { client: c } = await loggedIn(ctx);
     const archived = await createProduct(ctx, { archived: true });
@@ -129,6 +142,15 @@ describe('addresses', () => {
     expect(patched.body.city).toBe('Shelbyville');
     expect((await c.delete(`/addresses/${created.body.id}`)).status).toBe(204);
     expect((await c.get('/addresses')).body.items).toEqual([]);
+  });
+
+  it('an empty required field asks for at least 1 character (singular)', async () => {
+    const { client: c } = await loggedIn(ctx);
+    const res = await c.post('/addresses', { ...address, street: '   ' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.details).toEqual([
+      { field: 'street', message: 'Tiene que tener al menos 1 carácter.' },
+    ]);
   });
 
   it('validates fields', async () => {

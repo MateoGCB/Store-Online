@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Deps } from '../deps.js';
 import { conflict, notFound } from '../lib/errors.js';
+import { pluralize } from '../lib/plural.js';
 import { visibleProduct } from './catalog.service.js';
 import { MAX_CART_LINES, MAX_UNITS_PER_PRODUCT, availableUnits, imageDto } from './dto.js';
 
@@ -73,7 +74,7 @@ export async function setCartItem(deps: Deps, userId: string, productId: string,
       'INSUFFICIENT_STOCK',
       available === 0
         ? 'Este producto no tiene stock disponible.'
-        : `Solo hay ${available} unidades disponibles.`,
+        : `Solo hay ${pluralize(available, 'unidad disponible', 'unidades disponibles')}.`,
       { productId, available },
     );
   }

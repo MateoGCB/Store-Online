@@ -1,21 +1,28 @@
 import { z } from 'zod';
 import { badRequest } from './errors.js';
+import { pluralize } from './plural.js';
 
 /** User-facing validation messages in Spanish (Rioplatense, "vos"). */
 const spanishErrors: z.core.$ZodErrorMap = (issue) => {
   switch (issue.code) {
     case 'invalid_type':
       return issue.input === undefined ? 'Este campo es obligatorio.' : 'El valor no es válido.';
-    case 'too_small':
-      if (issue.origin === 'string') return `Tiene que tener al menos ${issue.minimum} caracteres.`;
+    case 'too_small': {
+      const min = Number(issue.minimum);
+      if (issue.origin === 'string')
+        return `Tiene que tener al menos ${pluralize(min, 'carácter', 'caracteres')}.`;
       if (issue.origin === 'array' || issue.origin === 'set')
-        return `Tiene que tener al menos ${issue.minimum} elementos.`;
+        return `Tiene que tener al menos ${pluralize(min, 'elemento', 'elementos')}.`;
       return `Tiene que ser como mínimo ${issue.minimum}.`;
-    case 'too_big':
-      if (issue.origin === 'string') return `Puede tener como máximo ${issue.maximum} caracteres.`;
+    }
+    case 'too_big': {
+      const max = Number(issue.maximum);
+      if (issue.origin === 'string')
+        return `Puede tener como máximo ${pluralize(max, 'carácter', 'caracteres')}.`;
       if (issue.origin === 'array' || issue.origin === 'set')
-        return `Puede tener como máximo ${issue.maximum} elementos.`;
+        return `Puede tener como máximo ${pluralize(max, 'elemento', 'elementos')}.`;
       return `Puede ser como máximo ${issue.maximum}.`;
+    }
     case 'invalid_format':
       if (issue.format === 'email') return 'Ingresá un email válido.';
       if (issue.format === 'uuid') return 'El identificador no es válido.';
