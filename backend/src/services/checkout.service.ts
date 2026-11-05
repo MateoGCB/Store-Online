@@ -84,6 +84,8 @@ export async function checkout(
   }
 
   // Outside the transaction: never hold row locks while calling an external API.
+  // The buyer comes back to the store's /checkout/result page, which syncs the payment.
+  const frontend = deps.env.FRONTEND_URL.replace(/\/+$/, '');
   let preference;
   try {
     preference = await payments.createPreference({
@@ -93,9 +95,9 @@ export async function checkout(
       expiresAt: order.expiresAt,
       notificationUrl: `${deps.env.PUBLIC_API_URL.replace(/\/+$/, '')}/api/v1/webhooks/mercadopago`,
       backUrls: {
-        success: `${deps.env.FRONTEND_URL}/orders/${order.id}?payment=success`,
-        pending: `${deps.env.FRONTEND_URL}/orders/${order.id}?payment=pending`,
-        failure: `${deps.env.FRONTEND_URL}/orders/${order.id}?payment=failure`,
+        success: `${frontend}/checkout/result?orderId=${order.id}&payment=success`,
+        pending: `${frontend}/checkout/result?orderId=${order.id}&payment=pending`,
+        failure: `${frontend}/checkout/result?orderId=${order.id}&payment=failure`,
       },
       items: [
         ...order.items.map((i) => ({

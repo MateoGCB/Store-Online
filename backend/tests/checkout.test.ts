@@ -61,7 +61,15 @@ describe('checkout', () => {
     const pref = ctx.payments.preferences[0]!;
     expect(pref.orderId).toBe(order.id);
     expect(pref.notificationUrl).toBe('http://localhost:4000/api/v1/webhooks/mercadopago');
-    expect(pref.backUrls.success).toBe(`http://localhost:3000/orders/${order.id}?payment=success`);
+    expect(pref.backUrls.success).toBe(
+      `http://localhost:3000/checkout/result?orderId=${order.id}&payment=success`,
+    );
+    expect(pref.backUrls.failure).toBe(
+      `http://localhost:3000/checkout/result?orderId=${order.id}&payment=failure`,
+    );
+    expect(pref.backUrls.pending).toBe(
+      `http://localhost:3000/checkout/result?orderId=${order.id}&payment=pending`,
+    );
     expect(pref.items.map((i) => [i.title, i.quantity, i.unitPriceCents]).sort()).toEqual([
       ['Plato', 1, 250050],
       ['Taza', 2, 100000],

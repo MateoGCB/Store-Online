@@ -27,9 +27,9 @@ try {
     expiresAt: new Date(Date.now() + 30 * 60_000),
     notificationUrl: `${env.PUBLIC_API_URL.replace(/\/+$/, '')}/api/v1/webhooks/mercadopago`,
     backUrls: {
-      success: `${env.FRONTEND_URL}/orders/${orderId}?payment=success`,
-      pending: `${env.FRONTEND_URL}/orders/${orderId}?payment=pending`,
-      failure: `${env.FRONTEND_URL}/orders/${orderId}?payment=failure`,
+      success: `${env.FRONTEND_URL}/checkout/result?orderId=${orderId}&payment=success`,
+      pending: `${env.FRONTEND_URL}/checkout/result?orderId=${orderId}&payment=pending`,
+      failure: `${env.FRONTEND_URL}/checkout/result?orderId=${orderId}&payment=failure`,
     },
     items: [{ id: 'smoke', title: 'Producto de prueba', quantity: 1, unitPriceCents: 100_00 }],
   });
