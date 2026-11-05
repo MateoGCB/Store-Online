@@ -75,7 +75,12 @@ export interface Transition {
  */
 export const ADMIN_TRANSITIONS: readonly Transition[] = [
   { from: 'PAID', to: 'PREPARING', fulfillment: null, label: 'Empezar a preparar' },
-  { from: 'PREPARING', to: 'READY_FOR_PICKUP', fulfillment: 'PICKUP', label: 'Listo para retirar' },
+  {
+    from: 'PREPARING',
+    to: 'READY_FOR_PICKUP',
+    fulfillment: 'PICKUP',
+    label: 'Marcar como listo para retirar',
+  },
   { from: 'PREPARING', to: 'SHIPPED', fulfillment: 'DELIVERY', label: 'Marcar como enviado' },
   {
     from: 'READY_FOR_PICKUP',

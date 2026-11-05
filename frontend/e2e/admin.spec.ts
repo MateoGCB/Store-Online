@@ -100,8 +100,12 @@ test('7. the admin moves an order PAID -> PREPARING -> READY_FOR_PICKUP -> DELIV
   await expect(page.getByRole('button', { name: 'Marcar como entregado' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Marcar como enviado' })).toHaveCount(0);
 
-  for (const action of ['Empezar a preparar', 'Listo para retirar', 'Marcar como entregado']) {
-    await page.getByRole('button', { name: action }).click();
+  for (const action of [
+    'Empezar a preparar',
+    'Marcar como listo para retirar',
+    'Marcar como entregado',
+  ]) {
+    await page.getByRole('button', { name: action, exact: true }).click();
     await expect(page.getByText('Actualizamos el estado del pedido.').last()).toBeVisible();
   }
   await expect(page.getByText('Entregado', { exact: true }).first()).toBeVisible();

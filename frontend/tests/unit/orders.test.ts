@@ -1,5 +1,6 @@
 import type { Fulfillment, OrderStatus } from '@/lib/api/types';
 import {
+  ADMIN_TRANSITIONS,
   ORDER_STATUS_LABELS,
   availableTransitions,
   canAdminCancel,
@@ -67,6 +68,18 @@ describe('admin order transitions', () => {
 
   it('the customer can pay again or cancel only while pending', () => {
     expect(ALL.filter(canCustomerPayOrCancel)).toEqual(['PENDING_PAYMENT']);
+  });
+});
+
+describe('admin action texts (written by hand: they are the button copy)', () => {
+  it('each transition has its exact button text', () => {
+    expect(ADMIN_TRANSITIONS.map((t) => [t.from, t.to, t.label])).toEqual([
+      ['PAID', 'PREPARING', 'Empezar a preparar'],
+      ['PREPARING', 'READY_FOR_PICKUP', 'Marcar como listo para retirar'],
+      ['PREPARING', 'SHIPPED', 'Marcar como enviado'],
+      ['READY_FOR_PICKUP', 'DELIVERED', 'Marcar como entregado'],
+      ['SHIPPED', 'DELIVERED', 'Marcar como entregado'],
+    ]);
   });
 });
 

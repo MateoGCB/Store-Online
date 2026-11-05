@@ -16,7 +16,7 @@ describe('admin order actions (only valid transitions)', () => {
   it.each<[AdminOrder['status'], AdminOrder['fulfillment'], string[]]>([
     ['PAID', 'PICKUP', ['Empezar a preparar', 'Cancelar pedido']],
     ['PAID', 'DELIVERY', ['Empezar a preparar', 'Cancelar pedido']],
-    ['PREPARING', 'PICKUP', ['Listo para retirar', 'Cancelar pedido']],
+    ['PREPARING', 'PICKUP', ['Marcar como listo para retirar', 'Cancelar pedido']],
     ['PREPARING', 'DELIVERY', ['Marcar como enviado', 'Cancelar pedido']],
     ['READY_FOR_PICKUP', 'PICKUP', ['Marcar como entregado', 'Cancelar pedido']],
     ['SHIPPED', 'DELIVERY', ['Marcar como entregado']],
