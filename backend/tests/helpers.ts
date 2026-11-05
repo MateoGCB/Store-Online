@@ -35,6 +35,8 @@ export async function createTestContext(
   options: AppOptions & {
     start?: Date;
     paymentsProvider?: 'mercadopago' | 'fake';
+    /** Value of TRUST_PROXY (number of trusted proxy hops, or false). */
+    trustProxy?: false | number;
   } = {},
 ): Promise<TestContext> {
   const base = loadEnv({ ...process.env, NODE_ENV: 'test' });
@@ -52,6 +54,7 @@ export async function createTestContext(
     FRONTEND_URL: 'http://localhost:3000',
     RESERVATION_MINUTES: 30,
     PAYMENTS_PROVIDER: options.paymentsProvider ?? ('mercadopago' as const),
+    TRUST_PROXY: options.trustProxy ?? false,
   };
   const prisma = createPrisma(url, 25);
   const clock = new FixedClock(options.start ?? new Date('2026-11-04T12:00:00.000Z'));
