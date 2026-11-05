@@ -6,6 +6,7 @@ import { registerAdminRoutes } from './admin.routes.js';
 import { registerAuthRoutes } from './auth.routes.js';
 import { registerCartRoutes } from './cart.routes.js';
 import { registerCatalogRoutes } from './catalog.routes.js';
+import { registerDevRoutes } from './dev.routes.js';
 import { registerHealthRoute } from './health.routes.js';
 import { registerOrderRoutes } from './orders.routes.js';
 import { registerWebhookRoutes } from './webhooks.routes.js';
@@ -24,5 +25,7 @@ export function buildApiRouter(deps: Deps, limiters: RateLimiters): Router {
   registerOrderRoutes(router, deps, limiters);
   registerAdminOrderRoutes(router, deps);
   registerWebhookRoutes(router, deps);
+  // Demo mode only: never registered with the real payment provider (or in production).
+  if (deps.env.PAYMENTS_PROVIDER === 'fake') registerDevRoutes(router, deps);
   return router;
 }

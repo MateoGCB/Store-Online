@@ -21,7 +21,8 @@
     "db:seed": "prisma db seed",
     "mp:smoke": "tsx scripts/mp-smoke.ts",
     "postinstall": "prisma generate",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "openapi:export": "tsx scripts/export-openapi.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",

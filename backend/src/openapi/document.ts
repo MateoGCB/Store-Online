@@ -18,6 +18,7 @@ import { loginSchema, registerSchema } from '../services/auth.service.js';
 import { setCartItemInput } from '../services/cart.service.js';
 import { listProductsQuery } from '../services/catalog.service.js';
 import { checkoutInput } from '../services/checkout.service.js';
+import { simulatePaymentInput } from '../services/simulated-payments.service.js';
 import { reorderImagesInput } from '../services/images.service.js';
 import {
   adminCancelInput,
@@ -694,7 +695,32 @@ const operations: Operation[] = [
   },
 ];
 
-export function buildOpenApiDocument(env: Pick<Env, 'PUBLIC_API_URL'>) {
+/** Only documented (and registered) in demo mode, PAYMENTS_PROVIDER=fake. */
+const devOperations: Operation[] = [
+  {
+    method: 'get',
+    path: '/dev/status',
+    tag: 'Desarrollo (modo demo)',
+    summary: 'Indica que los pagos son simulados (solo existe con PAYMENTS_PROVIDER=fake)',
+    access: 'public',
+    success: { status: 200, description: 'Modo demo activo', schema: S.DevStatus },
+  },
+  {
+    method: 'post',
+    path: '/dev/orders/{id}/simulate-payment',
+    tag: 'Desarrollo (modo demo)',
+    summary: 'Simular el pago de un pedido propio (solo con PAYMENTS_PROVIDER=fake)',
+    access: 'customer',
+    description:
+      'Solo existe en modo demo (PAYMENTS_PROVIDER=fake, prohibido en producción). Registra un pago simulado aprobado o rechazado y lo procesa por el mismo camino que un webhook real de Mercado Pago.',
+    params: uuidParam,
+    body: simulatePaymentInput,
+    success: { status: 200, description: 'Pedido después de procesar el pago', schema: S.Order },
+    errors: [notFoundOrder],
+  },
+];
+
+export function buildOpenApiDocument(env: Pick<Env, 'PUBLIC_API_URL' | 'PAYMENTS_PROVIDER'>) {
   const registry = new OpenAPIRegistry();
   registry.registerComponent('securitySchemes', 'cookieAuth', {
     type: 'apiKey',
@@ -702,7 +728,8 @@ export function buildOpenApiDocument(env: Pick<Env, 'PUBLIC_API_URL'>) {
     name: 'session',
   });
 
-  for (const op of operations) {
+  const all = env.PAYMENTS_PROVIDER === 'fake' ? [...operations, ...devOperations] : operations;
+  for (const op of all) {
     const request: NonNullable<RouteConfig['request']> = {};
     if (op.params) request.params = op.params;
     if (op.query) request.query = op.query;

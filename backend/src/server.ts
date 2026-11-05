@@ -5,7 +5,7 @@ import { createPrisma } from './db.js';
 import type { Deps } from './deps.js';
 import { systemClock } from './lib/clock.js';
 import { createLogger } from './logger.js';
-import { MercadoPagoProvider } from './payments/mercadopago.provider.js';
+import { createPaymentProvider } from './payments/create-provider.js';
 import { expireOverdueOrders } from './services/stock.service.js';
 import { LocalStorage } from './storage/local.storage.js';
 
@@ -13,7 +13,9 @@ const env = loadEnv();
 const logger = createLogger(env);
 mkdirSync(env.UPLOAD_DIR, { recursive: true });
 
-if (!env.MP_ACCESS_TOKEN) {
+if (env.PAYMENTS_PROVIDER === 'fake') {
+  logger.warn('PAYMENTS_PROVIDER=fake: payments are SIMULATED (demo mode, development only)');
+} else if (!env.MP_ACCESS_TOKEN) {
   logger.warn('MP_ACCESS_TOKEN is not set: checkout will answer 503 until it is configured');
 }
 
@@ -22,7 +24,7 @@ const deps: Deps = {
   logger,
   prisma: createPrisma(env.DATABASE_URL),
   clock: systemClock,
-  payments: env.MP_ACCESS_TOKEN ? new MercadoPagoProvider(env.MP_ACCESS_TOKEN) : null,
+  payments: createPaymentProvider(env),
   storage: new LocalStorage(env.UPLOAD_DIR, env.PUBLIC_API_URL),
 };
 

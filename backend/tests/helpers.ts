@@ -12,6 +12,7 @@ import type { Deps } from '../src/deps.js';
 import type { OrderStatus, Fulfillment } from '../src/generated/prisma/client.js';
 import { FixedClock } from '../src/lib/clock.js';
 import { createLogger } from '../src/logger.js';
+import { createPaymentProvider } from '../src/payments/create-provider.js';
 import { FakePaymentProvider } from '../src/payments/fake.provider.js';
 import { LocalStorage } from '../src/storage/local.storage.js';
 
@@ -31,7 +32,10 @@ export interface TestContext {
 }
 
 export async function createTestContext(
-  options: AppOptions & { start?: Date } = {},
+  options: AppOptions & {
+    start?: Date;
+    paymentsProvider?: 'mercadopago' | 'fake';
+  } = {},
 ): Promise<TestContext> {
   const base = loadEnv({ ...process.env, NODE_ENV: 'test' });
   const url = base.DATABASE_URL_TEST!;
@@ -47,10 +51,15 @@ export async function createTestContext(
     PUBLIC_API_URL: 'http://localhost:4000',
     FRONTEND_URL: 'http://localhost:3000',
     RESERVATION_MINUTES: 30,
+    PAYMENTS_PROVIDER: options.paymentsProvider ?? ('mercadopago' as const),
   };
   const prisma = createPrisma(url, 25);
   const clock = new FixedClock(options.start ?? new Date('2026-11-04T12:00:00.000Z'));
-  const payments = new FakePaymentProvider();
+  // Demo mode uses the same factory as the server; otherwise a plain in-memory provider.
+  const payments =
+    env.PAYMENTS_PROVIDER === 'fake'
+      ? (createPaymentProvider(env) as FakePaymentProvider)
+      : new FakePaymentProvider();
   const deps: Deps = {
     env,
     prisma,

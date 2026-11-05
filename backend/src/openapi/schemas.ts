@@ -261,6 +261,10 @@ export const Health = z
   .object({ status: z.string().openapi({ example: 'ok' }), database: z.string(), time: isoDate })
   .openapi('Health');
 
+export const DevStatus = z
+  .object({ paymentsProvider: z.enum(['mercadopago', 'fake']).openapi({ example: 'fake' }) })
+  .openapi('DevStatus');
+
 export const WebhookAck = z.object({ received: z.boolean() }).openapi('WebhookAck');
 
 export { z };

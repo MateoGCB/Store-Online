@@ -14,8 +14,8 @@ interface Layer {
 }
 
 /** Every route actually registered on the API router, as "METHOD /api/v1/path/{param}". */
-function registeredRoutes(): string[] {
-  const router = ctx.app.locals.apiRouter as Router & { stack: Layer[] };
+function registeredRoutes(context: TestContext = ctx): string[] {
+  const router = context.app.locals.apiRouter as Router & { stack: Layer[] };
   const routes: string[] = [];
   for (const layer of router.stack) {
     if (!layer.route) continue;
@@ -37,18 +37,37 @@ describe('OpenAPI', () => {
     expect(ui.text).toContain('swagger-ui');
   });
 
-  it('documents every registered route, and nothing that does not exist', async () => {
-    const spec = (await request(ctx.app).get('/docs/openapi.json')).body as {
+  async function documentedRoutes(context: TestContext): Promise<string[]> {
+    const spec = (await request(context.app).get('/docs/openapi.json')).body as {
       paths: Record<string, Record<string, unknown>>;
     };
     const documented: string[] = [];
     for (const [path, ops] of Object.entries(spec.paths)) {
       for (const method of Object.keys(ops)) documented.push(`${method.toUpperCase()} ${path}`);
     }
+    return documented;
+  }
+
+  it('documents every registered route, and nothing that does not exist', async () => {
+    const documented = await documentedRoutes(ctx);
     const registered = registeredRoutes();
     expect(registered.length).toBeGreaterThan(40);
     expect(registered.filter((r) => !documented.includes(r))).toEqual([]);
     expect(documented.filter((d) => !registered.includes(d))).toEqual([]);
+  });
+
+  it('in demo mode the dev routes are registered AND documented (and only there)', async () => {
+    const demo = await createTestContext({ paymentsProvider: 'fake' });
+    try {
+      const documented = await documentedRoutes(demo);
+      const registered = registeredRoutes(demo);
+      expect(registered).toContain('POST /api/v1/dev/orders/{id}/simulate-payment');
+      expect(registered.filter((r) => !documented.includes(r))).toEqual([]);
+      expect(documented.filter((d) => !registered.includes(d))).toEqual([]);
+      expect(registeredRoutes()).not.toContain('POST /api/v1/dev/orders/{id}/simulate-payment');
+    } finally {
+      await demo.close();
+    }
   });
 
   it('documents error responses with examples for every operation', async () => {

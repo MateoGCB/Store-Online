@@ -53,6 +53,11 @@ const envSchema = z
       .default(30),
     UPLOAD_DIR: z.string().min(1).default('uploads'),
     TRUST_PROXY: trustProxy,
+    /**
+     * `fake` simulates Mercado Pago (demo mode, development only): checkout sends the buyer
+     * to a page of the store and POST /dev/orders/:id/simulate-payment confirms the payment.
+     */
+    PAYMENTS_PROVIDER: z.enum(['mercadopago', 'fake']).default('mercadopago'),
     MP_ACCESS_TOKEN: optionalSecret,
     MP_WEBHOOK_SECRET: optionalSecret,
     ADMIN_EMAIL: optionalSecret,
@@ -63,6 +68,13 @@ const envSchema = z
     EXPIRATION_JOB_ENABLED: booleanish.default(true),
   })
   .superRefine((env, ctx) => {
+    if (env.NODE_ENV === 'production' && env.PAYMENTS_PROVIDER === 'fake') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENTS_PROVIDER'],
+        message: 'PAYMENTS_PROVIDER=fake (simulated payments) is not allowed in production',
+      });
+    }
     if (env.NODE_ENV === 'production') {
       for (const key of ['MP_ACCESS_TOKEN', 'MP_WEBHOOK_SECRET'] as const) {
         if (!env[key]) {
